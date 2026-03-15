@@ -47,6 +47,23 @@ OPENAI_API_KEY="sk-..."
 
 Для работы разбора `PDF/DOCX`, экспорта `PDF/DOCX` и GPT-анализа странице нужен доступ к CDN и к OpenAI API.
 
+## GitHub Pages
+
+Интерфейс можно публиковать через GitHub Pages как статический сайт.
+
+Важно:
+- GitHub Pages не запускает `Python` backend;
+- поэтому сама страница будет открываться, но AI-анализ заработает только если указать адрес внешнего backend;
+- адрес backend задается в [config.js](/Users/danilbukharin/Documents/Playground/config.js):
+
+```js
+window.APP_CONFIG = {
+  apiBaseUrl: "https://your-backend.example.com",
+};
+```
+
+Если `apiBaseUrl` пустой, локально приложение использует текущий origin, а на GitHub Pages покажет, что для AI нужен отдельный backend.
+
 ## Ограничения текущей версии
 
 - поддерживаются текстовые файлы (`.txt`, `.md`, `.html`, `.json`), текстовые `PDF` и `DOCX`;
