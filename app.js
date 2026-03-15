@@ -26,6 +26,7 @@ const els = {
   sourceInput: document.getElementById("sourceInput"),
   sourceFiles: document.getElementById("sourceFiles"),
   reportOutput: document.getElementById("reportOutput"),
+  aiDebugPanel: document.getElementById("aiDebugPanel"),
   aiDebugOutput: document.getElementById("aiDebugOutput"),
   outputMeta: document.getElementById("outputMeta"),
   ingestMeta: document.getElementById("ingestMeta"),
@@ -1228,6 +1229,7 @@ function setAiMeta(text) {
 
 function writeAiDebug(payload) {
   const filled = countFilledAiFields(payload);
+  els.aiDebugPanel.hidden = false;
   els.aiDebugOutput.textContent = `Заполнено полей: ${filled}\n\n${JSON.stringify(payload, null, 2)}`;
 }
 
@@ -1398,6 +1400,7 @@ function clearAll() {
   els.outputMeta.textContent = "Справка ещё не сформирована.";
   setIngestMeta("");
   setAiMeta("");
+  els.aiDebugPanel.hidden = true;
   els.aiDebugOutput.textContent = "Ответ AI ещё не получен.";
   setNeutralGptIndicator("Статус AI");
   els.aiProgressBlock.hidden = true;
@@ -1549,41 +1552,41 @@ function buildPdfDefinition() {
   const meta = collectMeta(state.lastAiResult);
   const infoRows = buildCaseCardRows(meta).map(([label, value]) => ([
     { text: label, style: "cellLabel" },
-    { text: value, style: "cellValue" },
+    { text: formatRichMultilinePdf(value), style: "cellValue" },
   ]));
   const reasoningBlocks = splitReasoningBlocks(meta.prospectsReasoning);
   return {
     pageSize: "A4",
-    pageMargins: [56.7, 56.7, 56.7, 56.7],
+    pageMargins: [72, 72, 72, 72],
     content: [
-      { text: "I. КАРТОЧКА ДЕЛА", style: "sectionLead" },
+      { text: "I. КАРТОЧКА ДЕЛА", style: "sectionLead", margin: [0, 0, 0, 8] },
       {
         table: {
-          widths: [130, "*"],
+          widths: [118, "*"],
           body: infoRows,
         },
         layout: {
-          hLineWidth: () => 0.75,
-          vLineWidth: () => 0.75,
+          hLineWidth: () => 0.8,
+          vLineWidth: () => 0.8,
           hLineColor: () => "#000000",
           vLineColor: () => "#000000",
-          paddingLeft: () => 6,
-          paddingRight: () => 6,
-          paddingTop: () => 4,
-          paddingBottom: () => 4,
+          paddingLeft: () => 8,
+          paddingRight: () => 8,
+          paddingTop: () => 5,
+          paddingBottom: () => 5,
         },
       },
-      { text: "II. ВЫВОДЫ О ПЕРСПЕКТИВАХ", style: "sectionLead", margin: [0, 12, 0, 6] },
-      { text: formatProspectsForDisplay(meta), style: "body" },
+      { text: "II. ВЫВОДЫ О ПЕРСПЕКТИВАХ", style: "sectionLead", pageBreak: "before", margin: [0, 0, 0, 8] },
+      { text: formatRichMultilinePdf(formatProspectsForDisplay(meta)), style: "body" },
       { text: "III. ОПИСАНИЕ СИТУАЦИИ", style: "sectionLead", margin: [0, 12, 0, 6] },
-      { text: meta.situationSummary || "Требует уточнения.", style: "body" },
+      { text: formatRichMultilinePdf(meta.situationSummary || "Требует уточнения."), style: "body" },
       { text: "IV. ОБОСНОВАНИЕ ПОЗИЦИИ", style: "sectionLead", margin: [0, 12, 0, 6] },
-      ...reasoningBlocks.map((block) => ({ text: block, style: "body", margin: [0, 0, 0, 6] })),
+      ...reasoningBlocks.map((block) => ({ text: formatRichMultilinePdf(block), style: "body", margin: [0, 0, 0, 6] })),
     ],
     defaultStyle: {
       font: "Roboto",
       fontSize: 11,
-      lineHeight: 1.1,
+      lineHeight: 1.15,
     },
     styles: {
       sectionLead: {
@@ -1595,14 +1598,17 @@ function buildPdfDefinition() {
         fontSize: 11,
         bold: false,
         alignment: "left",
+        lineHeight: 1.15,
       },
       cellValue: {
         fontSize: 11,
         alignment: "justify",
+        lineHeight: 1.15,
       },
       body: {
         fontSize: 11,
         alignment: "justify",
+        lineHeight: 1.15,
       },
     },
   };
@@ -1611,10 +1617,10 @@ function buildPdfDefinition() {
 function buildDocxHtml() {
   const meta = collectMeta(state.lastAiResult);
   const rows = buildCaseCardRows(meta)
-    .map(([label, value]) => `<tr><td class="label">${escapeHtml(label)}</td><td class="value">${escapeHtml(value)}</td></tr>`)
+    .map(([label, value]) => `<tr><td class="label">${escapeHtml(label)}</td><td class="value">${formatRichMultilineHtml(value)}</td></tr>`)
     .join("");
   const reasoningBlocks = splitReasoningBlocks(meta.prospectsReasoning)
-    .map((block) => `<p class="body">${escapeHtml(block)}</p>`)
+    .map((block) => `<p class="body">${formatRichMultilineHtml(block)}</p>`)
     .join("");
 
   return `<!DOCTYPE html>
@@ -1622,24 +1628,27 @@ function buildDocxHtml() {
 <head>
   <meta charset="UTF-8">
   <style>
-    @page { margin: 2cm; }
-    body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.1; color: #000; }
+    @page { margin: 2.54cm; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.15; color: #000; }
     p { margin: 0 0 6pt 0; }
-    .section { font-weight: 700; text-transform: uppercase; margin: 0 0 6pt 0; }
+    .section { font-weight: 700; text-transform: uppercase; margin: 0 0 8pt 0; }
+    .section.page-break { page-break-before: always; }
     .body { text-align: justify; }
     table { width: 100%; border-collapse: collapse; margin: 0 0 12pt 0; }
-    td { border: 1pt solid #000; vertical-align: top; padding: 4pt 6pt; text-align: justify; }
-    td.label { width: 24%; text-align: left; }
-    td.value { width: 76%; }
+    td { border: 1pt solid #000; vertical-align: top; padding: 5pt 8pt; text-align: justify; }
+    td.label { width: 22.8%; text-align: left; }
+    td.value { width: 77.2%; }
+    .line { display: block; margin: 0 0 4pt 0; }
+    .line:last-child { margin-bottom: 0; }
   </style>
 </head>
 <body>
   <p class="section">I. КАРТОЧКА ДЕЛА</p>
   <table>${rows}</table>
-  <p class="section">II. ВЫВОДЫ О ПЕРСПЕКТИВАХ</p>
-  <p class="body">${escapeHtml(formatProspectsForDisplay(meta)).replace(/\n/g, "<br>")}</p>
+  <p class="section page-break">II. ВЫВОДЫ О ПЕРСПЕКТИВАХ</p>
+  <p class="body">${formatRichMultilineHtml(formatProspectsForDisplay(meta))}</p>
   <p class="section">III. ОПИСАНИЕ СИТУАЦИИ</p>
-  <p class="body">${escapeHtml(meta.situationSummary || "Требует уточнения.").replace(/\n/g, "<br>")}</p>
+  <p class="body">${formatRichMultilineHtml(meta.situationSummary || "Требует уточнения.")}</p>
   <p class="section">IV. ОБОСНОВАНИЕ ПОЗИЦИИ</p>
   ${reasoningBlocks || '<p class="body">Требует уточнения.</p>'}
 </body>
@@ -1755,6 +1764,32 @@ function splitReasoningBlocks(text) {
     .split(/\n\s*\n/u)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function formatRichMultilineHtml(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => `<span class="line">${escapeHtml(line)}</span>`)
+    .join("") || escapeHtml(String(text || ""));
+}
+
+function formatRichMultilinePdf(text) {
+  const lines = String(text || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (!lines.length) {
+    return String(text || "");
+  }
+
+  return lines.flatMap((line, index) => (
+    index === lines.length - 1
+      ? [line]
+      : [line, "\n"]
+  ));
 }
 
 function escapeHtml(value) {

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20">
+  <link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
   <div class="page-shell">
@@ -48,9 +48,20 @@
           <div class="ai-inline-meta">
             <div class="ai-model-card">
               <div class="ai-model-card__logo">G</div>
-              <div>
+              <div class="ai-model-card__main">
                 <div class="ai-model-card__label">Модель AI</div>
                 <div class="ai-model-card__value">Gemini 2.5 Flash</div>
+              </div>
+              <div class="upload-settings upload-settings--inline">
+                <label>
+                  <span>Глубина анализа ИИ</span>
+                  <select id="reasoningEffort">
+                    <option value="medium" selected>medium</option>
+                    <option value="low">low</option>
+                    <option value="high">high</option>
+                  </select>
+                  <small class="field-note">`low` быстрый базовый анализ, `medium` стандартный режим, `high` более глубокий анализ.</small>
+                </label>
               </div>
             </div>
             <span class="status-pill status-pill--neutral" id="gptStatus">
@@ -58,25 +69,12 @@
               <span id="gptStatusText">Статус AI</span>
             </span>
           </div>
-          <div class="upload-settings">
-            <label>
-              <span>Глубина анализа ИИ</span>
-              <select id="reasoningEffort">
-                <option value="medium" selected>medium</option>
-                <option value="low">low</option>
-                <option value="high">high</option>
-              </select>
-              <small class="field-note">`low` означает быстрый базовый анализ, `medium` стандартный режим, `high` более глубокий анализ для сложных и объемных документов.</small>
-            </label>
-          </div>
           <input id="sourceInput" type="file" accept=".pdf,.docx,.txt,.md,.html,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/json" multiple hidden>
-          <details class="debug-panel">
-            <summary>Технический ответ AI</summary>
-            <pre id="aiDebugOutput" class="debug-panel__content">Ответ AI ещё не получен.</pre>
-          </details>
-          <div id="sourceFiles" class="file-list"></div>
           <div class="upload-card__actions">
             <label class="button button--ghost" for="sourceInput">Загрузить документы</label>
+          </div>
+          <div id="sourceFiles" class="file-list"></div>
+          <div class="upload-card__actions upload-card__actions--secondary">
             <button id="processDocsBtn" class="button" type="button">Обработать документы</button>
           </div>
           <div id="ingestMeta" class="output-meta" hidden></div>
@@ -91,6 +89,10 @@
               <div class="progress-step" id="progressStepFill">3. Графы заполнены по результату AI</div>
             </div>
           </div>
+          <details class="debug-panel" id="aiDebugPanel" hidden>
+            <summary>Технический ответ ИИ</summary>
+            <pre id="aiDebugOutput" class="debug-panel__content">Ответ AI ещё не получен.</pre>
+          </details>
         </div>
       </section>
 
@@ -219,6 +221,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.min.js"></script>
   <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
   <script src="config.js?v=2"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=23"></script>
 </body>
 </html>
