@@ -64,7 +64,7 @@ window.APP_CONFIG = {
 
 Если `apiBaseUrl` пустой, локально приложение использует текущий origin, а на GitHub Pages покажет, что для AI нужен отдельный backend.
 
-Для тестового режима можно также указать `publicGeminiApiKey` в [config.js](/Users/danilbukharin/Documents/Playground/config.js), и тогда GitHub Pages будет обращаться к Gemini напрямую из браузера.
+Для тестового режима GitHub Pages может подставлять `publicGeminiApiKey` в [config.js](/Users/danilbukharin/Documents/Playground/config.js) во время деплоя через GitHub Actions, если в репозитории создан secret `GEMINI_API_KEY`.
 
 Важно:
 - это небезопасно;

@@ -26,6 +26,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Inject Pages config
+        run: |
+          cat > config.js <<'EOF'
+          window.APP_CONFIG = {
+            apiBaseUrl: "",
+            publicGeminiApiKey: "${{ secrets.GEMINI_API_KEY }}",
+          };
+          EOF
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
