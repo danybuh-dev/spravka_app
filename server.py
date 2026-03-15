@@ -12,6 +12,7 @@ PORT = int(os.environ.get("APP_PORT", "8000"))
 OPENAI_API_URL = os.environ.get("OPENAI_API_URL", "https://api.openai.com/v1/responses")
 GEMINI_API_BASE_URL = os.environ.get("GEMINI_API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/models")
 ROOT = Path(__file__).resolve().parent
+DEFAULT_ALLOWED_ORIGINS = "http://127.0.0.1:8000,http://localhost:8000,https://danybuh-dev.github.io"
 
 
 def load_dotenv():
@@ -35,6 +36,14 @@ def load_dotenv():
 class AppHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
+
+    def end_headers(self):
+        self._send_cors_headers()
+        super().end_headers()
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.end_headers()
 
     def do_GET(self):
         if self.path == "/api/health":
@@ -97,6 +106,16 @@ class AppHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(encoded)
 
+    def _send_cors_headers(self):
+        origin = self.headers.get("Origin")
+        allowed_origin = resolve_allowed_origin(origin)
+        if allowed_origin:
+            self.send_header("Access-Control-Allow-Origin", allowed_origin)
+            self.send_header("Vary", "Origin")
+
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
 
 def main():
     load_dotenv()
@@ -111,6 +130,23 @@ def main():
         print("\nServer stopped.")
     finally:
         server.server_close()
+
+
+def get_allowed_origins():
+    raw = os.environ.get("APP_ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def resolve_allowed_origin(origin):
+    if not origin:
+        return "*"
+
+    allowed = get_allowed_origins()
+    if "*" in allowed:
+        return "*"
+    if origin in allowed:
+        return origin
+    return ""
 
 
 def resolve_provider():

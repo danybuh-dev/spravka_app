@@ -64,6 +64,23 @@ window.APP_CONFIG = {
 
 Если `apiBaseUrl` пустой, локально приложение использует текущий origin, а на GitHub Pages покажет, что для AI нужен отдельный backend.
 
+Для реально рабочего AI вне локальной машины нужен такой комплект:
+- GitHub Pages для фронтенда;
+- отдельный backend c [server.py](/Users/danilbukharin/Documents/Playground/server.py) на Render / Railway / Fly.io / VPS;
+- переменные окружения `GEMINI_API_KEY` и `AI_PROVIDER=gemini` на этом backend;
+- `APP_ALLOWED_ORIGINS`, куда включен ваш домен `https://danybuh-dev.github.io`;
+- адрес backend в [config.js](/Users/danilbukharin/Documents/Playground/config.js).
+
+Минимальный рабочий вариант:
+1. Разместить `server.py` на Render как web service.
+2. На Render задать:
+   - `GEMINI_API_KEY=...`
+   - `AI_PROVIDER=gemini`
+   - `APP_HOST=0.0.0.0`
+   - `APP_PORT=10000`
+   - `APP_ALLOWED_ORIGINS=https://danybuh-dev.github.io`
+3. В [config.js](/Users/danilbukharin/Documents/Playground/config.js) прописать URL Render-сервиса.
+
 ## Ограничения текущей версии
 
 - поддерживаются текстовые файлы (`.txt`, `.md`, `.html`, `.json`), текстовые `PDF` и `DOCX`;
