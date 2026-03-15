@@ -4,6 +4,7 @@ const state = {
 };
 
 const API_BASE_URL = resolveApiBaseUrl();
+const PUBLIC_GEMINI_API_KEY = resolvePublicGeminiApiKey();
 
 const els = {
   openaiModel: document.getElementById("openaiModel"),
@@ -80,15 +81,21 @@ function bindEvents() {
 }
 
 async function initializeAiStatus() {
-  if (isGitHubPages() && !API_BASE_URL) {
+  if (isGitHubPages() && !API_BASE_URL && !PUBLIC_GEMINI_API_KEY) {
     setNeutralGptIndicator("Нужен backend");
-    setAiMeta("Интерфейс открыт через GitHub Pages. Для AI-анализа укажите внешний backend в config.js.");
+    setAiMeta("Интерфейс открыт через GitHub Pages. Для AI-анализа укажите backend или публичный Gemini key в config.js.");
     return;
   }
 
   try {
+    if (!API_BASE_URL && PUBLIC_GEMINI_API_KEY) {
+      setGptIndicator(true, "AI работает");
+      setAiMeta("");
+      return;
+    }
+
     const data = await checkBackendStatus({ silentSuccess: true, quietError: true });
-    if (data?.provider === "gemini") {
+    if (data?.provider === "gemini" || data?.ai_configured) {
       setGptIndicator(!!data.ai_configured, data.ai_configured ? "AI работает" : "AI офлайн");
       if (data.ai_configured) {
         setAiMeta("");
@@ -349,6 +356,19 @@ async function analyzeWithOpenAI() {
 
 async function checkBackendStatus(options = {}) {
   const { silentSuccess = false, quietError = false } = options;
+
+  if (!API_BASE_URL && PUBLIC_GEMINI_API_KEY) {
+    setGptIndicator(true, "AI работает");
+    if (!silentSuccess) {
+      setAiMeta("Используется прямое подключение к Gemini из браузера.");
+    }
+    return {
+      status: "ok",
+      provider: "gemini",
+      ai_configured: true,
+    };
+  }
+
   if (!silentSuccess) {
     setAiMeta("Проверка backend...");
   }
@@ -475,6 +495,10 @@ function buildOpenAIInstructions() {
 }
 
 async function requestOpenAIAnalysis({ model, reasoningEffort, instructions, payload }) {
+  if (!API_BASE_URL && PUBLIC_GEMINI_API_KEY) {
+    return requestGeminiDirectAnalysis({ model, instructions, payload, reasoningEffort });
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120000);
 
@@ -552,6 +576,14 @@ function resolveApiBaseUrl() {
   return "";
 }
 
+function resolvePublicGeminiApiKey() {
+  const configured = window.APP_CONFIG?.publicGeminiApiKey;
+  if (typeof configured === "string" && configured.trim()) {
+    return configured.trim();
+  }
+  return "";
+}
+
 function buildApiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
@@ -562,9 +594,79 @@ function isGitHubPages() {
 
 function buildBackendErrorMessage() {
   if (isGitHubPages()) {
-    return "Для версии на GitHub Pages нужен отдельный backend. Укажите его адрес в config.js.";
+    return "Для версии на GitHub Pages нужен backend или публичный Gemini key в config.js.";
   }
   return "Backend недоступен. Откройте приложение через http://127.0.0.1:8000 и убедитесь, что сервер запущен.";
+}
+
+async function requestGeminiDirectAnalysis({ model, instructions, payload, reasoningEffort }) {
+  const selectedModel = model && !model.startsWith("gpt-") ? model : "gemini-2.5-flash";
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${encodeURIComponent(PUBLIC_GEMINI_API_KEY)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        system_instruction: instructions
+          ? { parts: [{ text: `${instructions} Уровень глубины анализа: ${reasoningEffort}.` }] }
+          : undefined,
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: payload }],
+          },
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+        },
+      }),
+    },
+  );
+
+  const data = await response.json();
+  if (!response.ok) {
+    const message = data?.error?.message || "Gemini API вернул ошибку.";
+    throw new Error(`Ошибка Gemini API: ${message}`);
+  }
+
+  const raw = extractGeminiText(data);
+  if (!raw) {
+    throw new Error("Gemini API не вернул текст результата.");
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed === "object" && parsed !== null) {
+      parsed.provider = "gemini";
+    }
+    return parsed;
+  } catch (_error) {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (typeof parsed === "object" && parsed !== null) {
+        parsed.provider = "gemini";
+      }
+      return parsed;
+    }
+    throw new Error("Gemini вернул ответ, но приложение не смогло разобрать его как JSON.");
+  }
+}
+
+function extractGeminiText(data) {
+  let text = "";
+  const candidates = data?.candidates || [];
+  if (candidates.length) {
+    const parts = candidates[0]?.content?.parts || [];
+    parts.forEach((part) => {
+      if (typeof part?.text === "string") {
+        text += part.text;
+      }
+    });
+  }
+  return text.trim();
 }
 
 function extractResponseText(data) {

@@ -64,6 +64,13 @@ window.APP_CONFIG = {
 
 Если `apiBaseUrl` пустой, локально приложение использует текущий origin, а на GitHub Pages покажет, что для AI нужен отдельный backend.
 
+Для тестового режима можно также указать `publicGeminiApiKey` в [config.js](/Users/danilbukharin/Documents/Playground/config.js), и тогда GitHub Pages будет обращаться к Gemini напрямую из браузера.
+
+Важно:
+- это небезопасно;
+- ключ становится публичным;
+- такой режим допустим только для теста.
+
 Для реально рабочего AI вне локальной машины нужен такой комплект:
 - GitHub Pages для фронтенда;
 - отдельный backend c [server.py](/Users/danilbukharin/Documents/Playground/server.py) на Render / Railway / Fly.io / VPS;
