@@ -307,7 +307,7 @@ async function analyzeWithOpenAI() {
   const instructions = buildOpenAIInstructions();
   startAiProgress();
   setAiProgressStep(1);
-  setAiMeta(`Документы отправлены в AI. Объем текста для анализа: ${Math.round(payload.length / 1000)} тыс. символов. Ожидайте ответ модели.`);
+  setAiMeta("");
   setProgressGptIndicator("AI анализирует документы");
   els.processDocsBtn.disabled = true;
 
@@ -322,7 +322,7 @@ async function analyzeWithOpenAI() {
     result = normalizeAiResult(result);
 
     if (!hasMeaningfulAiPrefill(result)) {
-      setAiMeta("AI вернул слишком мало данных. Выполняется повторный запрос с усиленным режимом извлечения.");
+      setAiMeta("");
       result = await requestOpenAIAnalysis({
         model: els.openaiModel.value.trim() || "gemini-2.5-flash",
         reasoningEffort: "high",
@@ -338,8 +338,8 @@ async function analyzeWithOpenAI() {
     els.reportOutput.value = renderAiReport(result);
     setAiProgressStep(3);
     const provider = result.provider || "ai";
-    setAiMeta(`AI-анализ завершен через ${provider}. Поля и готовая справка обновлены.`);
-    setGptIndicator(true, `AI подключен и работает (${provider})`);
+    setAiMeta("");
+    setGptIndicator(true, `AI работает (${provider})`);
     els.outputMeta.textContent = "Справка сформирована на основе анализа GPT.";
 
     if (!hasMeaningfulAiPrefill(result)) {
@@ -1316,20 +1316,23 @@ function readFieldValue(value) {
 }
 
 function setGptIndicator(isConnected, label) {
-  els.gptStatus.classList.remove("status-pill--on", "status-pill--off", "status-pill--neutral", "status-pill--progress");
-  els.gptStatus.classList.add(isConnected ? "status-pill--on" : "status-pill--off");
+  els.gptStatus.classList.remove("ai-status-dot--on", "ai-status-dot--off", "ai-status-dot--neutral", "ai-status-dot--progress");
+  els.gptStatus.classList.add(isConnected ? "ai-status-dot--on" : "ai-status-dot--off");
+  els.gptStatus.title = label;
   els.gptStatusText.textContent = label;
 }
 
 function setNeutralGptIndicator(label) {
-  els.gptStatus.classList.remove("status-pill--on", "status-pill--off", "status-pill--neutral", "status-pill--progress");
-  els.gptStatus.classList.add("status-pill--neutral");
+  els.gptStatus.classList.remove("ai-status-dot--on", "ai-status-dot--off", "ai-status-dot--neutral", "ai-status-dot--progress");
+  els.gptStatus.classList.add("ai-status-dot--neutral");
+  els.gptStatus.title = label;
   els.gptStatusText.textContent = label;
 }
 
 function setProgressGptIndicator(label) {
-  els.gptStatus.classList.remove("status-pill--on", "status-pill--off", "status-pill--neutral", "status-pill--progress");
-  els.gptStatus.classList.add("status-pill--progress");
+  els.gptStatus.classList.remove("ai-status-dot--on", "ai-status-dot--off", "ai-status-dot--neutral", "ai-status-dot--progress");
+  els.gptStatus.classList.add("ai-status-dot--progress");
+  els.gptStatus.title = label;
   els.gptStatusText.textContent = label;
 }
 
@@ -1470,10 +1473,10 @@ async function downloadDocxReport() {
     const blob = window.htmlDocx.asBlob(html, {
       orientation: "portrait",
       margins: {
-        top: 720,
-        right: 720,
-        bottom: 720,
-        left: 720,
+        top: 1134,
+        right: 850,
+        bottom: 1134,
+        left: 1701,
       },
     });
     triggerDownload(blob, `${buildSafeFileName()}.docx`);
@@ -1551,64 +1554,71 @@ function countFilledAiFields(result) {
 function buildPdfDefinition() {
   const meta = collectMeta(state.lastAiResult);
   const infoRows = buildCaseCardRows(meta).map(([label, value]) => ([
-    { text: label, style: "cellLabel" },
-    { text: formatRichMultilinePdf(value), style: "cellValue" },
+    { stack: buildPdfParagraphNodes(label, "cellLabel", "left"), margin: [0, 0, 0, 0] },
+    { stack: buildPdfParagraphNodes(value, "cellValue", "justify"), margin: [0, 0, 0, 0] },
   ]));
   const reasoningBlocks = splitReasoningBlocks(meta.prospectsReasoning);
   return {
     pageSize: "A4",
-    pageMargins: [72, 72, 72, 72],
+    pageMargins: [85.05, 56.7, 42.5, 56.7],
     content: [
-      { text: "I. КАРТОЧКА ДЕЛА", style: "sectionLead", margin: [0, 0, 0, 8] },
+      { text: "I. КАРТОЧКА ДЕЛА", style: "sectionLead", margin: [0, 0, 0, 6] },
       {
         table: {
-          widths: [118, "*"],
+          widths: [106.35, 360.9],
           body: infoRows,
         },
         layout: {
-          hLineWidth: () => 0.8,
-          vLineWidth: () => 0.8,
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5,
           hLineColor: () => "#000000",
           vLineColor: () => "#000000",
-          paddingLeft: () => 8,
-          paddingRight: () => 8,
-          paddingTop: () => 5,
-          paddingBottom: () => 5,
+          paddingLeft: () => 5.4,
+          paddingRight: () => 5.4,
+          paddingTop: () => 0,
+          paddingBottom: () => 0,
         },
       },
-      { text: "II. ВЫВОДЫ О ПЕРСПЕКТИВАХ", style: "sectionLead", pageBreak: "before", margin: [0, 0, 0, 8] },
-      { text: formatRichMultilinePdf(formatProspectsForDisplay(meta)), style: "body" },
+      { text: "II. ВЫВОДЫ О ПЕРСПЕКТИВАХ", style: "sectionLead", pageBreak: "before", margin: [0, 0, 0, 6] },
+      ...buildPdfParagraphNodes(formatProspectsForDisplay(meta), "body", "justify"),
       { text: "III. ОПИСАНИЕ СИТУАЦИИ", style: "sectionLead", margin: [0, 12, 0, 6] },
-      { text: formatRichMultilinePdf(meta.situationSummary || "Требует уточнения."), style: "body" },
+      ...buildPdfParagraphNodes(meta.situationSummary || "Требует уточнения.", "body", "justify"),
       { text: "IV. ОБОСНОВАНИЕ ПОЗИЦИИ", style: "sectionLead", margin: [0, 12, 0, 6] },
-      ...reasoningBlocks.map((block) => ({ text: formatRichMultilinePdf(block), style: "body", margin: [0, 0, 0, 6] })),
+      ...buildPdfReasoningBlocks(reasoningBlocks),
     ],
     defaultStyle: {
       font: "Roboto",
       fontSize: 11,
-      lineHeight: 1.15,
+      lineHeight: 1.2,
     },
     styles: {
       sectionLead: {
         fontSize: 11,
         bold: true,
         alignment: "left",
+        lineHeight: 1.25,
       },
       cellLabel: {
         fontSize: 11,
         bold: false,
         alignment: "left",
-        lineHeight: 1.15,
+        lineHeight: 1.2,
       },
       cellValue: {
         fontSize: 11,
         alignment: "justify",
-        lineHeight: 1.15,
+        lineHeight: 1.2,
       },
       body: {
         fontSize: 11,
         alignment: "justify",
-        lineHeight: 1.15,
+        lineHeight: 1.2,
+      },
+      thesis: {
+        fontSize: 11,
+        bold: true,
+        alignment: "justify",
+        lineHeight: 1.2,
       },
     },
   };
@@ -1617,38 +1627,37 @@ function buildPdfDefinition() {
 function buildDocxHtml() {
   const meta = collectMeta(state.lastAiResult);
   const rows = buildCaseCardRows(meta)
-    .map(([label, value]) => `<tr><td class="label">${escapeHtml(label)}</td><td class="value">${formatRichMultilineHtml(value)}</td></tr>`)
+    .map(([label, value]) => `<tr><td class="label">${buildHtmlParagraphs(label, "cell-label")}</td><td class="value">${buildHtmlParagraphs(value, "cell-value")}</td></tr>`)
     .join("");
-  const reasoningBlocks = splitReasoningBlocks(meta.prospectsReasoning)
-    .map((block) => `<p class="body">${formatRichMultilineHtml(block)}</p>`)
-    .join("");
+  const reasoningBlocks = buildReasoningHtml(splitReasoningBlocks(meta.prospectsReasoning));
 
   return `<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
   <style>
-    @page { margin: 2.54cm; }
-    body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.15; color: #000; }
-    p { margin: 0 0 6pt 0; }
-    .section { font-weight: 700; text-transform: uppercase; margin: 0 0 8pt 0; }
+    @page { size: A4; margin: 2cm 1.5cm 2cm 3cm; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.2; color: #000; }
+    p { margin: 0 0 6pt 0; text-align: justify; }
+    .section { font-weight: 700; text-transform: uppercase; margin: 0 0 6pt 0; line-height: 1.25; }
     .section.page-break { page-break-before: always; }
     .body { text-align: justify; }
-    table { width: 100%; border-collapse: collapse; margin: 0 0 12pt 0; }
-    td { border: 1pt solid #000; vertical-align: top; padding: 5pt 8pt; text-align: justify; }
-    td.label { width: 22.8%; text-align: left; }
-    td.value { width: 77.2%; }
-    .line { display: block; margin: 0 0 4pt 0; }
-    .line:last-child { margin-bottom: 0; }
+    .thesis { font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin: 0 0 12pt 0; table-layout: fixed; }
+    td { border: 0.5pt solid #000; vertical-align: top; padding: 0 5.4pt; }
+    td.label { width: 22.76%; }
+    td.value { width: 77.24%; }
+    .cell-label { text-align: left; }
+    .cell-value { text-align: justify; }
   </style>
 </head>
 <body>
   <p class="section">I. КАРТОЧКА ДЕЛА</p>
   <table>${rows}</table>
   <p class="section page-break">II. ВЫВОДЫ О ПЕРСПЕКТИВАХ</p>
-  <p class="body">${formatRichMultilineHtml(formatProspectsForDisplay(meta))}</p>
+  ${buildHtmlParagraphs(formatProspectsForDisplay(meta), "body")}
   <p class="section">III. ОПИСАНИЕ СИТУАЦИИ</p>
-  <p class="body">${formatRichMultilineHtml(meta.situationSummary || "Требует уточнения.")}</p>
+  ${buildHtmlParagraphs(meta.situationSummary || "Требует уточнения.", "body")}
   <p class="section">IV. ОБОСНОВАНИЕ ПОЗИЦИИ</p>
   ${reasoningBlocks || '<p class="body">Требует уточнения.</p>'}
 </body>
@@ -1764,6 +1773,69 @@ function splitReasoningBlocks(text) {
     .split(/\n\s*\n/u)
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function normalizeMultilineSegments(text) {
+  return String(text || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function buildPdfParagraphNodes(text, style = "body", alignment = "justify") {
+  const segments = normalizeMultilineSegments(text);
+  if (!segments.length) {
+    return [{ text: String(text || ""), style, alignment, margin: [0, 0, 0, 6] }];
+  }
+  return segments.map((segment, index) => ({
+    text: segment,
+    style,
+    alignment,
+    margin: [0, 0, 0, index === segments.length - 1 ? 0 : 6],
+  }));
+}
+
+function buildPdfReasoningBlocks(blocks) {
+  if (!blocks.length) {
+    return [{ text: "Требует уточнения.", style: "body", alignment: "justify", margin: [0, 0, 0, 6] }];
+  }
+
+  return blocks.flatMap((block) => {
+    const [first, ...rest] = normalizeMultilineSegments(block);
+    if (!first) {
+      return [];
+    }
+    const nodes = [{ text: first, style: "thesis", alignment: "justify", margin: [0, 0, 0, rest.length ? 6 : 6] }];
+    if (rest.length) {
+      nodes.push(...rest.map((line, index) => ({
+        text: line,
+        style: "body",
+        alignment: "justify",
+        margin: [0, 0, 0, index === rest.length - 1 ? 6 : 6],
+      })));
+    }
+    return nodes;
+  });
+}
+
+function buildHtmlParagraphs(text, className = "body") {
+  const segments = normalizeMultilineSegments(text);
+  if (!segments.length) {
+    return `<p class="${className}">${escapeHtml(String(text || ""))}</p>`;
+  }
+  return segments.map((segment) => `<p class="${className}">${escapeHtml(segment)}</p>`).join("");
+}
+
+function buildReasoningHtml(blocks) {
+  if (!blocks.length) {
+    return "";
+  }
+  return blocks.map((block) => {
+    const [first, ...rest] = normalizeMultilineSegments(block);
+    const thesis = first ? `<p class="thesis">${escapeHtml(first)}</p>` : "";
+    const paragraph = rest.map((line) => `<p class="body">${escapeHtml(line)}</p>`).join("");
+    return `${thesis}${paragraph}`;
+  }).join("");
 }
 
 function formatRichMultilineHtml(text) {

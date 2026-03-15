@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=21">
+  <link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
   <div class="page-shell">
@@ -50,7 +50,12 @@
               <div class="ai-model-card__logo">G</div>
               <div class="ai-model-card__main">
                 <div class="ai-model-card__label">Модель AI</div>
-                <div class="ai-model-card__value">Gemini 2.5 Flash</div>
+                <div class="ai-model-card__value-row">
+                  <div class="ai-model-card__value">Gemini 2.5 Flash</div>
+                  <span class="ai-status-dot ai-status-dot--neutral" id="gptStatus" title="Статус AI">
+                    <span class="visually-hidden" id="gptStatusText">Статус AI</span>
+                  </span>
+                </div>
               </div>
               <div class="upload-settings upload-settings--inline">
                 <label>
@@ -64,14 +69,10 @@
                 </label>
               </div>
             </div>
-            <span class="status-pill status-pill--neutral" id="gptStatus">
-              <span class="status-pill__dot"></span>
-              <span id="gptStatusText">Статус AI</span>
-            </span>
           </div>
           <input id="sourceInput" type="file" accept=".pdf,.docx,.txt,.md,.html,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/json" multiple hidden>
           <div class="upload-card__actions">
-            <label class="button button--ghost" for="sourceInput">Загрузить документы</label>
+            <label class="button" for="sourceInput">Загрузить документы</label>
           </div>
           <div id="sourceFiles" class="file-list"></div>
           <div class="upload-card__actions upload-card__actions--secondary">
@@ -221,6 +222,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.10/vfs_fonts.min.js"></script>
   <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
   <script src="config.js?v=2"></script>
-  <script src="app.js?v=23"></script>
+  <script src="app.js?v=26"></script>
 </body>
 </html>
