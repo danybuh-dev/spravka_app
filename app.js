@@ -3,6 +3,8 @@ const state = {
   lastAiResult: null,
 };
 
+const API_BASE_URL = resolveApiBaseUrl();
+
 const els = {
   openaiModel: document.getElementById("openaiModel"),
   reasoningEffort: document.getElementById("reasoningEffort"),
@@ -78,6 +80,12 @@ function bindEvents() {
 }
 
 async function initializeAiStatus() {
+  if (isGitHubPages() && !API_BASE_URL) {
+    setNeutralGptIndicator("Нужен backend");
+    setAiMeta("Интерфейс открыт через GitHub Pages. Для AI-анализа укажите внешний backend в config.js.");
+    return;
+  }
+
   try {
     const data = await checkBackendStatus({ silentSuccess: true, quietError: true });
     if (data?.provider === "gemini") {
@@ -346,7 +354,7 @@ async function checkBackendStatus(options = {}) {
   }
 
   try {
-    const response = await fetch("/api/health");
+    const response = await fetch(buildApiUrl("/api/health"));
     const data = await response.json();
 
     if (!response.ok) {
@@ -366,7 +374,7 @@ async function checkBackendStatus(options = {}) {
     return data;
   } catch (error) {
     if (!quietError) {
-      setAiMeta("Backend недоступен. Откройте приложение через http://127.0.0.1:8000 и убедитесь, что сервер запущен.");
+      setAiMeta(buildBackendErrorMessage());
     }
     setGptIndicator(false, "AI не подключен");
     throw error;
@@ -472,7 +480,7 @@ async function requestOpenAIAnalysis({ model, reasoningEffort, instructions, pay
 
   let response;
   try {
-    response = await fetch("/api/analyze", {
+    response = await fetch(buildApiUrl("/api/analyze"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -534,6 +542,29 @@ async function requestOpenAIAnalysis({ model, reasoningEffort, instructions, pay
     }
     throw new Error("AI вернул ответ, но приложение не смогло разобрать его как JSON.");
   }
+}
+
+function resolveApiBaseUrl() {
+  const configured = window.APP_CONFIG?.apiBaseUrl;
+  if (typeof configured === "string" && configured.trim()) {
+    return configured.trim().replace(/\/+$/u, "");
+  }
+  return "";
+}
+
+function buildApiUrl(path) {
+  return `${API_BASE_URL}${path}`;
+}
+
+function isGitHubPages() {
+  return /\.github\.io$/iu.test(window.location.hostname);
+}
+
+function buildBackendErrorMessage() {
+  if (isGitHubPages()) {
+    return "Для версии на GitHub Pages нужен отдельный backend. Укажите его адрес в config.js.";
+  }
+  return "Backend недоступен. Откройте приложение через http://127.0.0.1:8000 и убедитесь, что сервер запущен.";
 }
 
 function extractResponseText(data) {
